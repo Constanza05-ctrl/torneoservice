@@ -2,7 +2,7 @@ package com.proyectosemestral.Controller;
 
 import com.proyectosemestral.Model.Torneo;
 import com.proyectosemestral.Service.TorneoService;
-import com.proyectosemestral.dto.TorneoDTO; // Importamos tu DTO real
+import com.proyectosemestral.dto.TorneoDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
@@ -19,10 +19,12 @@ public class TorneoController {
     }
 
     @PostMapping
-    public ResponseEntity<Torneo> creaTorneo(@RequestBody Torneo torneo) {
-        Torneo nuevoTorneo = torneoService.guarTorneo(torneo);
-        return new ResponseEntity<>(nuevoTorneo, HttpStatus.CREATED);
+    public ResponseEntity<TorneoDTO> creaTorneo(@RequestBody Torneo torneo) {
+        // El servicio procesa, valida vía Feign, guarda localmente y retorna el DTO
+        TorneoDTO nuevoTorneoDTO = torneoService.guarTorneo(torneo);
+        return new ResponseEntity<>(nuevoTorneoDTO, HttpStatus.CREATED);
     }
+
     @GetMapping
     public ResponseEntity<List<TorneoDTO>> listaCompleta() {
         List<TorneoDTO> torneos = torneoService.obtDatos();
@@ -38,13 +40,9 @@ public class TorneoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Torneo> actualizarTorneo(@PathVariable Long id, @RequestBody Torneo detalleTorneo) {
-        Torneo torneoActual = torneoService.actualizarTorneo(id, detalleTorneo);
-        if (torneoActual != null) {
-            return ResponseEntity.ok(torneoActual);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<TorneoDTO> actualizarTorneo(@PathVariable Long id, @RequestBody Torneo torneo) {
+        TorneoDTO torneoActualizadoDTO = torneoService.actualizarTorneo(id, torneo);
+        return new ResponseEntity<>(torneoActualizadoDTO, HttpStatus.OK); // Retorna 200 OK con el DTO
     }
 
     @DeleteMapping("/{id}")

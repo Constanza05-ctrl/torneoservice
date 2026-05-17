@@ -26,9 +26,54 @@ public class TorneoService {
         this.tiendaClient = tiendaClient;
     }
 
-    public Torneo guarTorneo(Torneo torneo) {
-        log.info("Guardando torneo para la tienda ID: {}", torneo.getIdTienda());
-        return torneoRepository.save(torneo);
+    public TorneoDTO guarTorneo(Torneo torneo) {
+        com.proyectosemestral.dto.TiendaDTO tiendaRemota = null;
+
+        try {
+            log.info("Validando existencia de la tienda ID: {} antes de crear el torneo", torneo.getIdTienda());
+
+            // 1. Invocamos el cliente Feign hacia el microservicio remoto
+            tiendaRemota = tiendaClient.obtenerTiendaPorId(torneo.getIdTienda());
+
+            // 2. Extraemos el nombre de la tienda y se lo inyectamos al torneo
+            // Esto evita la excepción 'El nombre de la tienda es obligatorio' de Hibernate
+            if (tiendaRemota != null && tiendaRemota.getNombre() != null) {
+                torneo.setNombreTienda(tiendaRemota.getNombre());
+                log.info("Tienda validada correctamente. Nombre asignado: {}", torneo.getNombreTienda());
+            }
+
+        } catch (FeignException e) {
+            if (e.status() == 404) {
+                log.error("Error: La tienda con ID {} no existe en el sistema remoto.", torneo.getIdTienda());
+                throw new NotFoundException(
+                        "No se puede crear el torneo porque la tienda con ID " + torneo.getIdTienda() + " no existe.");
+            }
+            if (e.status() < 0) {
+                log.error("Error de red con el microservicio remoto de Tienda: {}", e.getMessage());
+                throw new CaidoException("No se pudo validar la tienda porque el servidor remoto está inaccesible.");
+            }
+            throw new CaidoException(
+                    "El servicio de Tiendas devolvió un error inesperado (Código HTTP: " + e.status() + ").");
+        } catch (Exception e) {
+            log.error("Fallo general de comunicación: {}", e.getMessage());
+            throw new CaidoException("El microservicio de Tienda se encuentra inaccesible. Inténtelo más tarde.");
+        }
+
+        // 3. Almacenamos el torneo con su 'nombreTienda' ya inyectado en tu base de
+        // datos
+        Torneo torneoGuardado = torneoRepository.save(torneo);
+
+        // 4. Mapeamos la entidad persistida a un TorneoDTO para la salida limpia
+        TorneoDTO dto = new TorneoDTO();
+        dto.setId(torneoGuardado.getId());
+        dto.setIdTienda(torneoGuardado.getIdTienda());
+        dto.setNombreTienda(torneoGuardado.getNombreTienda());
+        dto.setTipoTorneo(torneoGuardado.getTipoTorneo());
+        dto.setCantidadMiembros(torneoGuardado.getCantidadMiembros());
+        dto.setFechaInicio(torneoGuardado.getFechaInicio());
+        dto.setFechaTermino(torneoGuardado.getFechaTermino());
+
+        return dto;
     }
 
     public List<TorneoDTO> obtDatos() {
@@ -39,7 +84,6 @@ public class TorneoService {
                 .map(torneo -> ATorneoDTO(torneo))
                 .collect(Collectors.toList());
     }
-
 
     public TorneoDTO obtDatosId(Long id) {
         log.info("Obteniendo torneo con ID: {}", id);
@@ -52,23 +96,57 @@ public class TorneoService {
         return ATorneoDTO(torneo);
     }
 
-    public Torneo actualizarTorneo(Long id, Torneo detalleTorneo) {
-        log.info("Actualizando torneo con ID: {}", id);
+    public TorneoDTO actualizarTorneo(Long id, Torneo torneoDetalles) {
+        // 1. Verificar si el torneo que se quiere editar existe en tu BD local
+        Torneo torneoExistente = torneoRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(
+                        "No se puede actualizar porque el torneo con ID " + id + " no existe."));
 
-        Torneo torneoExiste = torneoRepository.findById(id).orElseThrow(() -> {
-            log.warn("Torneo con ID {} no encontrado para actualización", id);
-            return new NotFoundException("Torneo no encontrado");
-        });
+        com.proyectosemestral.dto.TiendaDTO tiendaRemota = null;
 
-        torneoExiste.setIdTienda(detalleTorneo.getIdTienda());
-        torneoExiste.setNombreTienda(detalleTorneo.getNombreTienda());
-        torneoExiste.setTipoTorneo(detalleTorneo.getTipoTorneo());
-        torneoExiste.setCantidadMiembros(detalleTorneo.getCantidadMiembros());
-        torneoExiste.setFechaInicio(detalleTorneo.getFechaInicio());
-        torneoExiste.setFechaTermino(detalleTorneo.getFechaTermino());
+        try {
+            log.info("Validando existencia de la tienda ID: {} para la actualización del torneo",
+                    torneoDetalles.getIdTienda());
+            tiendaRemota = tiendaClient.obtenerTiendaPorId(torneoDetalles.getIdTienda());
 
-        log.info("Torneo actualizado localmente para tienda ID: {}", torneoExiste.getIdTienda());
-        return torneoRepository.save(torneoExiste);
+            // 3. Si la tienda existe, inyectamos el nombre recuperado por red
+            if (tiendaRemota != null && tiendaRemota.getNombre() != null) {
+                torneoExistente.setNombreTienda(tiendaRemota.getNombre());
+            }
+
+        } catch (FeignException e) {
+            if (e.status() == 404) {
+                log.error("Validación fallida: La tienda ID {} no existe.", torneoDetalles.getIdTienda());
+                throw new NotFoundException("No se puede actualizar el torneo porque la tienda con ID "
+                        + torneoDetalles.getIdTienda() + " no existe.");
+            }
+            if (e.status() < 0) {
+                log.error("Fallo de red con el microservicio de Tienda: {}", e.getMessage());
+                throw new CaidoException("No se pudo validar la tienda porque el servidor remoto está inaccesible.");
+            }
+            throw new CaidoException("El servicio remoto de Tienda respondió con error (Status: " + e.status() + ").");
+        } catch (Exception e) {
+            log.error("Fallo crítico colateral: {}", e.getMessage());
+            throw new CaidoException("El microservicio de Tienda se encuentra inaccesible.");
+        }
+
+        torneoExistente.setIdTienda(torneoDetalles.getIdTienda());
+        torneoExistente.setTipoTorneo(torneoDetalles.getTipoTorneo());
+        torneoExistente.setCantidadMiembros(torneoDetalles.getCantidadMiembros());
+        torneoExistente.setFechaInicio(torneoDetalles.getFechaInicio());
+        torneoExistente.setFechaTermino(torneoDetalles.getFechaTermino());
+
+        Torneo torneoActualizado = torneoRepository.save(torneoExistente);
+        TorneoDTO dto = new TorneoDTO();
+        dto.setId(torneoActualizado.getId());
+        dto.setIdTienda(torneoActualizado.getIdTienda());
+        dto.setNombreTienda(torneoActualizado.getNombreTienda());
+        dto.setTipoTorneo(torneoActualizado.getTipoTorneo());
+        dto.setCantidadMiembros(torneoActualizado.getCantidadMiembros());
+        dto.setFechaInicio(torneoActualizado.getFechaInicio());
+        dto.setFechaTermino(torneoActualizado.getFechaTermino());
+        log.info("Torneo con ID {} actualizado exitosamente", id);
+        return dto;
     }
 
     // 5. Eliminar Torneo
