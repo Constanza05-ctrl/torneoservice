@@ -3,18 +3,9 @@ package com.proyectosemestral.Controller;
 import com.proyectosemestral.Model.Torneo;
 import com.proyectosemestral.Service.TorneoService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-
-import java.util.List;
-import java.util.Optional;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import java.util.*;
 
 
 
@@ -38,10 +29,10 @@ public class TorneoController {
     }
     @GetMapping("/{id}")
     public ResponseEntity<Torneo> obtDatos(@PathVariable Long id) {
-        Optional<Torneo> torneo = torneoService.obtDatosId(id);
+        Torneo torneo = torneoService.obtDatosId(id);
 
-        if (torneo.isPresent()) {
-            return ResponseEntity.ok(torneo.get());
+        if (torneo != null ) {
+            return new ResponseEntity<>(torneo, HttpStatus.OK);
         }else{
             return ResponseEntity.notFound().build();
         }
