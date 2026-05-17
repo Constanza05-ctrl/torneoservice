@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TorneoCreateDTO {
+    @NotNull(message = "El ID de la tienda no puede ser nulo")
+    private Long idTienda;
     @NotBlank(message = "El nombre de la tienda es obligatorio")
     private String nombreTienda;   
 

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    //Captura errores de validación en los datos de entrada (HTTP 400)
+    // Captura errores de validación en los datos de entrada (HTTP 400)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, Object> response = new HashMap<>();
@@ -28,10 +28,11 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.toList());
 
         response.put("errores", errores);
-        
+
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
-    //Captura el NotFoundException (HTTP 404) cuando no exista un ID de venta
+
+    // Captura el NotFoundException (HTTP 404) cuando no exista un ID de venta
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(NotFoundException ex) {
         Map<String, Object> response = new HashMap<>();
@@ -39,19 +40,19 @@ public class GlobalExceptionHandler {
         response.put("status", HttpStatus.NOT_FOUND.value());
         response.put("error", "Not Found");
         response.put("mensaje", ex.getMessage());
-        
+
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
-    //Captura errores genéricos o caídas inesperadas del sistema (HTTP 500)
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGlobalException(Exception ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now().toString());
-        response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        response.put("error", "Internal Server Error");
-        response.put("mensaje", "Ocurrió un error inesperado en el servidor");
-        
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    @ExceptionHandler(CaidoException.class)
+    public ResponseEntity<Map<String, Object>> manejarServicioCaido(CaidoException ex) {
+        Map<String, Object> respuesta = new HashMap<>();
+
+        respuesta.put("timestamp", LocalDateTime.now().toString());
+        respuesta.put("status", HttpStatus.SERVICE_UNAVAILABLE.value());
+        respuesta.put("error", "Servicio Externo No Disponible");
+        respuesta.put("mensaje", ex.getMessage());
+
+        return new ResponseEntity<>(respuesta, HttpStatus.SERVICE_UNAVAILABLE);
     }
 }
