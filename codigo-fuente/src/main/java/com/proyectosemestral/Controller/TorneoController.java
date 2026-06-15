@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import java.util.List;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/torneos")
@@ -19,7 +20,7 @@ public class TorneoController {
     }
 
     @PostMapping
-    public ResponseEntity<TorneoDTO> creaTorneo(@RequestBody Torneo torneo) {
+    public ResponseEntity<TorneoDTO> creaTorneo(@Valid @RequestBody Torneo torneo) {
         // El servicio procesa, valida vía Feign, guarda localmente y retorna el DTO
         TorneoDTO nuevoTorneoDTO = torneoService.guarTorneo(torneo);
         return new ResponseEntity<>(nuevoTorneoDTO, HttpStatus.CREATED);
@@ -40,7 +41,7 @@ public class TorneoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TorneoDTO> actualizarTorneo(@PathVariable Long id, @RequestBody Torneo torneo) {
+    public ResponseEntity<TorneoDTO> actualizarTorneo(@PathVariable Long id, @Valid @RequestBody Torneo torneo) {
         TorneoDTO torneoActualizadoDTO = torneoService.actualizarTorneo(id, torneo);
         return new ResponseEntity<>(torneoActualizadoDTO, HttpStatus.OK); // Retorna 200 OK con el DTO
     }
