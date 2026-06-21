@@ -31,12 +31,7 @@ public class TorneoService {
 
         try {
             log.info("Validando existencia de la tienda ID: {} antes de crear el torneo", torneo.getIdTienda());
-
-            // 1. Invocamos el cliente Feign hacia el microservicio remoto
             tiendaRemota = tiendaClient.obtenerTiendaPorId(torneo.getIdTienda());
-
-            // 2. Extraemos el nombre de la tienda y se lo inyectamos al torneo
-            // Esto evita la excepción 'El nombre de la tienda es obligatorio' de Hibernate
             if (tiendaRemota != null && tiendaRemota.getNombre() != null) {
                 torneo.setNombreTienda(tiendaRemota.getNombre());
                 log.info("Tienda validada correctamente. Nombre asignado: {}", torneo.getNombreTienda());
@@ -59,11 +54,8 @@ public class TorneoService {
             throw new CaidoException("El microservicio de Tienda se encuentra inaccesible. Inténtelo más tarde.");
         }
 
-        // 3. Almacenamos el torneo con su 'nombreTienda' ya inyectado en tu base de
         // datos
         Torneo torneoGuardado = torneoRepository.save(torneo);
-
-        // 4. Mapeamos la entidad persistida a un TorneoDTO para la salida limpia
         TorneoDTO dto = new TorneoDTO();
         dto.setId(torneoGuardado.getId());
         dto.setIdTienda(torneoGuardado.getIdTienda());
@@ -109,7 +101,6 @@ public class TorneoService {
                     torneoDetalles.getIdTienda());
             tiendaRemota = tiendaClient.obtenerTiendaPorId(torneoDetalles.getIdTienda());
 
-            // 3. Si la tienda existe, inyectamos el nombre recuperado por red
             if (tiendaRemota != null && tiendaRemota.getNombre() != null) {
                 torneoExistente.setNombreTienda(tiendaRemota.getNombre());
             }
