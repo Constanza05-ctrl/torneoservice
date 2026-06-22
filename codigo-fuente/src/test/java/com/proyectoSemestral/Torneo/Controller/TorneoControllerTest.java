@@ -56,9 +56,8 @@ class TorneoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(1))
-                // Cambia a mayúscula inicial tal como definiste el atributo en el TorneoDTO:
-                .andExpect(jsonPath("$[0].NombreTienda").value("Magic Store Chile"))
-                .andExpect(jsonPath("$[0].TipoTorneo").value("Standard TCG"));
+                .andExpect(jsonPath("$[0].nombreTienda").value("Magic Store Chile"))
+                .andExpect(jsonPath("$[0].tipoTorneo").value("Standard TCG"));
     }
 
     @Test
@@ -98,9 +97,8 @@ class TorneoControllerTest {
                 .content(json))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
-                // Cambiados a mayúscula inicial para calzar con las propiedades de tu DTO
-                .andExpect(jsonPath("$.NombreTienda").value("Magic Store Chile"))
-                .andExpect(jsonPath("$.TipoTorneo").value("Modern TCG"));
+                .andExpect(jsonPath("$.nombreTienda").value("Magic Store Chile"))
+                .andExpect(jsonPath("$.tipoTorneo").value("Modern TCG"));
     }
 
     @Test
